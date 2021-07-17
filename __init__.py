@@ -10,9 +10,14 @@ bl_info = {
 	"category": "Image"
 }
 
+# Quick import reference
+#from bpy.props import EnumProperty, IntProperty, FloatVectorProperty, BoolProperty, FloatProperty, StringProperty, PointerProperty, CollectionProperty
+#from bpy.types import PropertyGroup, UIList, Operator, Panel, AddonPreferences
+
 import bpy
-from bpy.props import EnumProperty, IntProperty, FloatVectorProperty, BoolProperty, FloatProperty, StringProperty, PointerProperty, CollectionProperty
-from bpy.types import PropertyGroup, UIList, Operator, Panel, AddonPreferences
+from bpy.props import IntProperty, PointerProperty, CollectionProperty
+from bpy.types import PropertyGroup, Operator, Panel
+
 
 ## Helper Functions
 
@@ -103,7 +108,7 @@ class FIL_OT_set_current_image(Operator):
 
 ## UI
 
-class FIL_PT_FaveImagesPanel(bpy.types.Panel):
+class FIL_PT_FaveImagesPanel(Panel):
 	"""Fave Images Panel"""
 	bl_label = "Favorite Images"
 	bl_space_type = 'IMAGE_EDITOR'
