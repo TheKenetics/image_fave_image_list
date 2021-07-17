@@ -1,8 +1,8 @@
 bl_info = {
 	"name": "Favorite Image List",
 	"author": "Kenetics",
-	"version": (0, 1),
-	"blender": (2, 80, 0),
+	"version": (0, 2),
+	"blender": (2, 90, 0),
 	"location": "Image Editor/UV Editor > Properties (N) > Favs Tab",
 	"description": "Adds a favorite images list for fast image switching.",
 	"warning": "",
@@ -19,9 +19,8 @@ from bpy.types import PropertyGroup, UIList, Operator, Panel, AddonPreferences
 
 
 ## Structs
-
 class FaveImageListPropertyGroup(PropertyGroup):
-	image_name : StringProperty()
+	image : PointerProperty(type = bpy.types.Image)
 
 
 ## Operators
@@ -30,22 +29,6 @@ class FIL_OT_add_to_faves(Operator):
 	"""Adds current image to favorites."""
 	bl_idname = "image.fil_ot_add_to_faves"
 	bl_label = "Add to Fave Images"
-	"""
-		REGISTER
-			Display in info window and support redo toolbar panel
-		UNDO
-			Push an undo event, needed for operator redo
-		BLOCKING
-			Block anthing else from moving the cursor
-		MACRO
-			?
-		GRAB_POINTER
-			Enables wrapping when continuous grab is enabled
-		PRESET
-			Display a preset button with operator settings
-		INTERNAL
-			Removes operator from search results
-	"""
 	bl_options = {'INTERNAL'}
 
 	@classmethod
@@ -53,8 +36,8 @@ class FIL_OT_add_to_faves(Operator):
 		return context.area.type == 'IMAGE_EDITOR' and context.space_data.image
 
 	def execute(self, context):
-		img = context.scene.fave_image_list.add()
-		img.image_name = context.space_data.image.name
+		new_fave_image = context.scene.fave_image_list.add()
+		new_fave_image.image = context.space_data.image
 		return {'FINISHED'}
 
 
@@ -88,8 +71,8 @@ class FIL_OT_clean_faves(Operator):
 		return context.area.type == 'IMAGE_EDITOR'
 
 	def execute(self, context):
-		for index, image in enumerate(context.scene.fave_image_list):
-			if image.image_name not in bpy.data.images:
+		for index, fave_image in enumerate(context.scene.fave_image_list):
+			if not fave_image.image:
 				self.index = index
 				FIL_OT_remove_from_faves.execute(self, context)
 		return {'FINISHED'}
@@ -101,9 +84,8 @@ class FIL_OT_set_current_image(Operator):
 	bl_label = "Set Current Image"
 	bl_options = {'INTERNAL'}
 	
-	image_name : StringProperty(
-		name="Image Name",
-		default=""
+	index : IntProperty(
+		name="Index"
 	)
 	
 	@classmethod
@@ -111,10 +93,11 @@ class FIL_OT_set_current_image(Operator):
 		return context.area.type == 'IMAGE_EDITOR' and context.scene.fave_image_list
 
 	def execute(self, context):
-		if self.image_name in bpy.data.images:
-			context.space_data.image = bpy.data.images[self.image_name]
+		fave_image = context.scene.fave_image_list[self.index]
+		if fave_image.image:
+			context.space_data.image = fave_image.image
 		else:
-			print(f"ERROR: {self.image_name} is not in images!")
+			print(f"ERROR: This image is not in images!")
 		return {'FINISHED'}
 
 
@@ -129,14 +112,18 @@ class FIL_PT_FaveImagesPanel(bpy.types.Panel):
 
 	def draw(self, context):
 		layout = self.layout
-		row = layout.row().split(factor=0.6, align=True)
+		row = layout.split(factor=0.6, align=True)
 		row.operator(FIL_OT_add_to_faves.bl_idname)
 		row.operator(FIL_OT_clean_faves.bl_idname, text="Clean")
 		
-		for index, image in enumerate(context.scene.fave_image_list):
-			row = layout.row().split(factor=0.9, align=True)
-			row.operator(FIL_OT_set_current_image.bl_idname, text=image.image_name).image_name = image.image_name
-			row.operator(FIL_OT_remove_from_faves.bl_idname, text="", icon="CANCEL").index = index
+		for index, fave_image in enumerate(context.scene.fave_image_list):
+			if fave_image.image:
+				row = layout.split(factor=0.9, align=True)
+				row.operator(FIL_OT_set_current_image.bl_idname, text=fave_image.image.name).index = index
+				row.operator(FIL_OT_remove_from_faves.bl_idname, text="", icon="CANCEL").index = index
+			else:
+				row = layout.row()
+				row.operator(FIL_OT_remove_from_faves.bl_idname, text="BROKEN IMAGE", icon="CANCEL").index = index
 
 
 ## Append to UI Helper Functions
